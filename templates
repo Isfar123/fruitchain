@@ -1,0 +1,91 @@
+{% extends 'base_vendor.html' %}
+{% load static %}
+
+{% block content %}
+<section class="content-section">
+    <h2 class="section-title display-6 mb-4">Your Orders</h2>
+    
+    {% if orders %}
+        {% for order in orders %}
+        <div class="card mb-4 order-card" id="order-{{ order.id }}">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Order #{{ order.id }}</span>
+                    <span class="badge bg-info">In Progress</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="card-title mb-3">Ordered Items</h5>
+                        {% for item in order.items.all %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <img src="{{ item.fruit.picture.url }}" alt="{{ item.fruit.name }}" class="me-2" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                <span>{{ item.fruit.name }} x {{ item.quantity }}</span>
+                            </div>
+                            <span class="text-success">৳{{ item.get_cost }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start ps-3">
+                            <p class="mb-2"><strong>Total Cost:</strong> <span class="text-success">৳{{ order.total_cost }}</span></p>
+                            <p class="mb-2"><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+                            <p class="mb-2"><strong>Ordered On:</strong> {{ order.created_at|date:"M d, Y" }}</p>
+                            <button onclick="cancelOrder({{ order.id }})" class="btn btn-danger mt-3">
+                                <i class="bi bi-x-circle"></i> Cancel Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-5">
+            <img src="https://cdn-icons-png.flaticon.com/512/4076/4076503.png" alt="No Orders" style="width: 200px; opacity: 0.5; margin-bottom: 2rem;">
+            <h3 class="h4 mb-3">No Orders Found</h3>
+            <p class="text-muted">You haven't placed any orders yet.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+@keyframes fadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.95); }
+}
+.order-card.removing {
+    animation: fadeOut 0.5s ease forwards;
+}
+</style>
+
+<script>
+function cancelOrder(orderId) {
+    if (confirm('Are you sure you want to cancel this order?')) {
+        const orderCard = document.getElementById(`order-{{ order.id }}`);
+        orderCard.classList.add('removing');
+        
+        fetch(`/vendor/orders/${orderId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        }).then(response => {
+            if (response.ok) {
+                setTimeout(() => {
+                    orderCard.remove();
+                    if (document.querySelectorAll('.order-card').length === 0) {
+                        location.reload();
+                    }
+                }, 500);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
